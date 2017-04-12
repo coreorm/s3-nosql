@@ -4,7 +4,7 @@
   "description": "use s3 as a datastore for nosql (limited query support).",
   "main": "s3-nosql.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "AWS_PROFILE=cm mocha tests/"
   },
   "repository": {
     "type": "git",
@@ -23,5 +23,9 @@
   "homepage": "https://github.com/coreorm/s3-nosql#readme",
   "dependencies": {
     "aws-sdk": "^2.40.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.0.2"
   }
 }

@@ -97,7 +97,7 @@ const fetchOne = (bucket, key, cb) => {
 /**
  * fetch all objects by keys
  * @param {string} bucket - name of the bucket
- * @param {array} keys - multiple keys to delete, e.g. ['key1', 'key2']
+ * @param {object} keys - multiple keys to delete, e.g. ['key1', 'key2']
  * @param {function} cb - callback function(err, data)
  */
 const fetchAll = (bucket, keys, cb) => {
@@ -151,7 +151,7 @@ const deleteOne = (bucket, key, cb) => {
 /**
  * delete multiple items
  * @param {string} bucket - name of the bucket
- * @param {array} keys - multiple keys to delete, e.g. ['key1', 'key2']
+ * @param {object} keys - multiple keys to delete, e.g. ['key1', 'key2']
  * @param {function} cb - callback function(err, data)
  */
 const deleteMany = (bucket, keys, cb) => {
@@ -205,12 +205,69 @@ const findWithContent = (bucket, keyword, prefix, cb) => {
   }
 };
 
-module.exports = {
-  find,
-  save,
-  fetchOne,
-  fetchAll,
-  findWithContent,
-  deleteOne,
-  deleteMany
-};
+// advanced modules
+class database {
+  constructor(bucket) {
+    this.bucket = bucket;
+  }
+
+  table(prefix) {
+    return new table(this.bucket, prefix);
+  }
+}
+
+class table {
+  constructor(bucket, prefix) {
+    this.bucket = bucket;
+    let tmp = prefix.split('/');
+    let prefixWithSlash = '';
+    tmp.forEach(function (item) {
+      if (item.length > 0) {
+        prefixWithSlash += item + '/';
+      }
+    });
+    this.prefix = prefixWithSlash;
+  }
+
+  find(keyword, cb) {
+    find(this.bucket, keyword, this.prefix, cb);
+  }
+
+  findWithContent(keyword, cb) {
+    findWithContent(this.bucket, keyword, this.prefix, cb)
+  }
+
+  save(key, data, cb) {
+    key = this.prefix + key;
+    save(this.bucket, key, data, cb);
+  }
+
+  fetchOne(key, cb) {
+    key = this.prefix + key;
+    fetchOne(this.bucket, key, cb);
+  }
+
+  fetchAll(keys, cb) {
+    let keysWithPrefix = [];
+    keys.forEach(function (item) {
+      keysWithPrefix.push(this.prefix + item);
+    });
+    fetchAll(this.bucket, keysWithPrefix, cb);
+  }
+
+  deleteOne(key, cb) {
+    key = this.prefix + key;
+    deleteOne(this.bucket, key, cb);
+  }
+
+  deleteMany(keys, cb) {
+    let keysWithPrefix = [];
+    keys.forEach(function (item) {
+      keysWithPrefix.push(this.prefix + item);
+    });
+    deleteMany(this.bucket, keysWithPrefix, cb);
+  }
+
+}
+
+module.exports = database;
