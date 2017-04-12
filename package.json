@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/coreorm/s3-nosql#readme",
   "dependencies": {
+    "async": "^2.3.0",
     "aws-sdk": "^2.40.0"
   },
   "devDependencies": {

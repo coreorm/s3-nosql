@@ -230,11 +230,32 @@ class table {
   }
 
   find(keyword, cb) {
-    find(this.bucket, keyword, this.prefix, cb);
+    let prefix = this.prefix;
+    find(this.bucket, keyword, this.prefix, function (err, data) {
+      if (err) {
+        return cb(err);
+      }
+      // remove prefix from keys
+      data.forEach(function (item) {
+        item.Key = item.Key.substring(prefix.length);
+      });
+      cb(err, data);
+    });
   }
 
   findWithContent(keyword, cb) {
-    findWithContent(this.bucket, keyword, this.prefix, cb)
+    let prefix = this.prefix;
+    findWithContent(this.bucket, keyword, this.prefix, function (err, data) {
+      if (err) {
+        return cb(err);
+      }
+      // remove prefix from keys
+      let newData = {};
+      for (let k in data) {
+        newData[k.substring(prefix.length)] = data[k];
+      }
+      cb(err, newData)
+    })
   }
 
   save(key, data, cb) {
@@ -248,11 +269,22 @@ class table {
   }
 
   fetchAll(keys, cb) {
+    let prefix = this.prefix;
     let keysWithPrefix = [];
     keys.forEach(function (item) {
       keysWithPrefix.push(this.prefix + item);
     });
-    fetchAll(this.bucket, keysWithPrefix, cb);
+    fetchAll(this.bucket, keysWithPrefix, function (err, data) {
+      if (err) {
+        return cb(err);
+      }
+      // remove prefix from keys
+      let newData = {};
+      for (let k in data) {
+        newData[k.substring(prefix.length)] = data[k];
+      }
+      cb(err, newData)
+    });
   }
 
   deleteOne(key, cb) {
