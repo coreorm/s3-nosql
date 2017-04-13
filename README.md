@@ -10,38 +10,63 @@ Make sure you have the s3 bucket setup properly and all the credentials setup;
 ## Usage 
 Let's say you want to connect to bucket 'my-db':
 
-```$javascript
+```javascript
 const database = require('../s3-nosql');
 const myDb = new database('my-db');
 ```
 
 And now, if you want to create a new table called 'new-table', simply do
-```$javascript
+```javascript
 const newTable = myDb.table('new-table');
 ```
 
 ### save one item
-
-And if you want to save a new item, just do
 ```
 save(<string: item id>, <data>, callback); 
 ```
+
 e.g.
 ```
-newTable.save('user', {
+newTable.save('user1', {
     name: 'John Doe',
     address: 'Somewhere over the rainbow'
 }, function(err, data) {...})
 ```
 
 ### delete one item
-And if you want to delete it:
+```javascript
+delete(key, callback)
+```
+e.g.
+
 ```
 newTable.delete('user', function(err, data) {...})
 ```
 
+### fetch one item by id
+```javascript
+fetchOne(key, callback)
+```
+e.g.
+```javascript
+newTable.fetchOne('user1', function(err, data) {...})
+```
+
+### fetch many items by ids
+This one loads multiple data in parallel
+```javascript
+fetchAll(keys, callback)
+```
+e.g.
+```javascript
+newTable.fetchAll(['user1', 'user2', 'user3'], function(err, data) {...})
+```
+
 ### find all under the table
-Note: since this is a document store, it's not feasible to search by content, so it accepts only document name matchings.
+Note: since this is a document store, it's not feasible to search by content, so it accepts only document name matching.
+```javascript
+find(keyword, callback)
+```
 e.g.
 ```
 newTable.find('u', function(err, data) {...})
@@ -49,7 +74,11 @@ newTable.find('u', function(err, data) {...})
 
 ### find and load content to all the objects
 This one works like find, but also loads the data to each object.
-```$javascript
+```javascript
+findWithContent(keyword, callback)
+```
+e.g.
+```javascript
 newTable.findWithContent('u', function(err, data) {...})
 ```
 
