@@ -161,7 +161,6 @@ const deleteMany = (bucket, keys, cb) => {
       Key: item
     });
   });
-  console.log(items);
   try {
     s3.deleteObjects({
       Bucket: bucket,

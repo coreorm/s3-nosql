@@ -67,7 +67,7 @@ describe('database: multi insert', function () {
 });
 
 describe('database: find', function () {
-  it('fine multiple', (done) => {
+  it('find multiple', (done) => {
     table.find('test', (err, data) => {
       done(err);
     })
@@ -87,6 +87,15 @@ describe('database: fetch multiple', function () {
   this.timeout(5000);
   it('fetch multiple', (done) => {
     table.fetchAll(['test1', 'test2', 'test3'], (err, data) => {
+      done(err);
+    })
+  });
+});
+
+describe('database: find with content', function () {
+  this.timeout(5000);
+  it('fetch multiple', (done) => {
+    table.findWithContent('test', (err, data) => {
       done(err);
     })
   });
