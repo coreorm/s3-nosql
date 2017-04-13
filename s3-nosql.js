@@ -9,15 +9,23 @@ const parallel = require('async').parallel;
  * @param {string} bucket - name of the bucket
  * @param {string} keyword - to match the object name
  * @param {string} prefix - prefix of the bucket
- * @param {function} cb - callback function(err, data)
+ * @param {function} cb - callback function(err, data, NextContinuationToken)
+ * @param {int} limit - items count of each batch
+ * @param {string} ContinuationToken - token for next batch
  */
-const find = (bucket, keyword, prefix, cb) => {
+const find = (bucket, keyword, prefix, cb, limit, ContinuationToken) => {
   try {
     let params = {
       Bucket: bucket
     };
     if (prefix) {
       params.Prefix = prefix;
+    }
+    if (limit > 0) {
+      params.MaxKeys = limit;
+    }
+    if (typeof ContinuationToken === 'string') {
+      params.ContinuationToken = ContinuationToken;
     }
 
     s3.listObjectsV2(params, (err, data) => {
@@ -35,7 +43,12 @@ const find = (bucket, keyword, prefix, cb) => {
           list = data.Contents;
         }
 
-        return cb(null, list);
+        let nextToken = null;
+        if (data.NextContinuationToken) {
+          nextToken = data.NextContinuationToken;
+        }
+
+        return cb(null, list, nextToken);
       } else {
         cb(new Error('invalid data', null));
       }
@@ -100,8 +113,9 @@ const fetchOne = (bucket, key, cb) => {
  * @param {string} bucket - name of the bucket
  * @param {object} keys - multiple keys to delete, e.g. ['key1', 'key2']
  * @param {function} cb - callback function(err, data)
+ * @param {string} nextToken - when present, send it back
  */
-const fetchAll = (bucket, keys, cb) => {
+const fetchAll = (bucket, keys, cb, nextToken) => {
   try {
     if (keys.length === 0 || !keys) {
       cb(new Error('please provide array of object keys to fetch'));
@@ -122,7 +136,7 @@ const fetchAll = (bucket, keys, cb) => {
       });
     }
     parallel(funcs, (err, data) => {
-      cb(err, objects);
+      cb(err, objects, nextToken);
     });
   } catch (e) {
     cb(e, null);
@@ -181,11 +195,13 @@ const deleteMany = (bucket, keys, cb) => {
  * @param {string} bucket - name of the bucket
  * @param {string} keyword - to match the object name
  * @param {string} prefix - prefix of the bucket
- * @param {function} cb - callback function(err, data)
+ * @param {function} cb - callback function(err, data, NextContinuationToken)
+ * @param {int} limit - items count of each batch
+ * @param {string} ContinuationToken - token for next batch
  */
-const findWithContent = (bucket, keyword, prefix, cb) => {
+const findWithContent = (bucket, keyword, prefix, cb, limit, ContinuationToken) => {
   try {
-    find(bucket, keyword, prefix, (err, data) => {
+    find(bucket, keyword, prefix, (err, data, nextToken) => {
       let keys = [];
       if (data != null && typeof data === 'object') {
         for (let k in data) {
@@ -197,8 +213,8 @@ const findWithContent = (bucket, keyword, prefix, cb) => {
         return cb(null, {});
       }
 
-      fetchAll(bucket, keys, cb);
-    });
+      fetchAll(bucket, keys, cb, nextToken);
+    }, limit, ContinuationToken);
   } catch (e) {
     cb(e, null);
   }
@@ -225,12 +241,17 @@ class table {
         prefixWithSlash += item + '/';
       }
     });
+    this.limit = 1000; // limit to 1000 items per page for fetching
     this.prefix = prefixWithSlash;
   }
 
-  find(keyword, cb) {
+  setLimit(intLimit) {
+    this.limit = parseInt(intLimit);
+  }
+
+  find(keyword, cb, ContinuationToken) {
     let prefix = this.prefix;
-    find(this.bucket, keyword, this.prefix, (err, data) => {
+    find(this.bucket, keyword, this.prefix, (err, data, nextToken) => {
       if (err) {
         return cb(err);
       }
@@ -238,13 +259,13 @@ class table {
       data.forEach((item) => {
         item.Key = item.Key.substring(prefix.length);
       });
-      cb(err, data);
-    });
+      cb(err, data, nextToken);
+    }, this.limit, ContinuationToken);
   }
 
-  findWithContent(keyword, cb) {
+  findWithContent(keyword, cb, ContinuationToken) {
     let prefix = this.prefix;
-    findWithContent(this.bucket, keyword, this.prefix, (err, data) => {
+    findWithContent(this.bucket, keyword, this.prefix, (err, data, nextToken) => {
       if (err) {
         return cb(err);
       }
@@ -253,8 +274,8 @@ class table {
       for (let k in data) {
         newData[k.substring(prefix.length)] = data[k];
       }
-      cb(err, newData)
-    })
+      cb(err, newData, nextToken);
+    }, this.limit, ContinuationToken);
   }
 
   save(key, data, cb) {

@@ -125,3 +125,38 @@ describe('database: save many', function () {
     });
   });
 });
+
+describe('database: find with paging', function () {
+  this.timeout(5000);
+  table.setLimit(10);
+  it('fetch bunch 1', (done) => {
+    table.find('', (err, data, nextToken) => {
+      console.log(nextToken);
+      expect(Object.keys(data).length).to.be.equal(10);
+      // next one...
+      table.find('', (err, data, nextToken2) => {
+        expect(Object.keys(data).length).to.be.equal(10);
+        console.log(nextToken2);
+        done(err);
+      }, nextToken);
+    })
+  });
+});
+
+describe('database: find with paging', function () {
+  this.timeout(5000);
+  table.setLimit(10);
+  it('fetch bunch 1', (done) => {
+    table.findWithContent('', (err, data, nextToken) => {
+      console.log(nextToken);
+      expect(Object.keys(data).length).to.be.equal(10);
+      // next one...
+      table.find('', (err, data, nextToken2) => {
+        expect(Object.keys(data).length).to.be.equal(10);
+        console.log(data);
+        console.log(nextToken2);
+        done(err);
+      }, nextToken);
+    })
+  });
+});
