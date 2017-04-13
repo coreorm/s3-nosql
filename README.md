@@ -30,7 +30,7 @@ e.g.
 newTable.save('user1', {
     name: 'John Doe',
     address: 'Somewhere over the rainbow'
-}, function(err, data) {...})
+}, (err, data) => {...})
 ```
 
 ### delete one item
@@ -40,7 +40,7 @@ delete(key, callback)
 e.g.
 
 ```
-newTable.delete('user', function(err, data) {...})
+newTable.delete('user', (err, data) => {...})
 ```
 
 ### fetch one item by id
@@ -49,7 +49,7 @@ fetchOne(key, callback)
 ```
 e.g.
 ```javascript
-newTable.fetchOne('user1', function(err, data) {...})
+newTable.fetchOne('user1', (err, data) => {...})
 ```
 
 ### fetch many items by ids
@@ -59,7 +59,7 @@ fetchAll(keys, callback)
 ```
 e.g.
 ```javascript
-newTable.fetchAll(['user1', 'user2', 'user3'], function(err, data) {...})
+newTable.fetchAll(['user1', 'user2', 'user3'], (err, data) => {...})
 ```
 
 ### find all under the table
@@ -69,7 +69,7 @@ find(keyword, callback)
 ```
 e.g.
 ```
-newTable.find('u', function(err, data) {...})
+newTable.find('u', (err, data) => {...})
 ```
 
 ### find and load content to all the objects
@@ -79,6 +79,6 @@ findWithContent(keyword, callback)
 ```
 e.g.
 ```javascript
-newTable.findWithContent('u', function(err, data) {...})
+newTable.findWithContent('u', (err, data) => {...})
 ```
 

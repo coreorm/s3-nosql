@@ -2,6 +2,7 @@
 
 const AWS = require('aws\-sdk');
 const s3 = new AWS.S3();
+const parallel = require('async').parallel;
 
 /**
  * list items in bucket
@@ -19,7 +20,7 @@ const find = (bucket, keyword, prefix, cb) => {
       params.Prefix = prefix;
     }
 
-    s3.listObjectsV2(params, function (err, data) {
+    s3.listObjectsV2(params, (err, data) => {
       let list = [];
       // console.log(data);
       if (data != null && typeof data === 'object' && data.hasOwnProperty('Contents') && typeof data.Contents === 'object') {
@@ -59,7 +60,7 @@ const save = (bucket, key, value, cb) => {
       Bucket: bucket,
       Key: key,
       Body: JSON.stringify(value)
-    }, function (err, data) {
+    }, (err, data) => {
       cb(err, data);
     });
   } catch (e) {
@@ -78,7 +79,7 @@ const fetchOne = (bucket, key, cb) => {
     s3.getObject({
       Bucket: bucket,
       Key: key
-    }, function (err, data) {
+    }, (err, data) => {
       // verify data
       let src = null;
       if (data != null && typeof data === 'object' && data.hasOwnProperty('Body')) {
@@ -106,13 +107,12 @@ const fetchAll = (bucket, keys, cb) => {
       cb(new Error('please provide array of object keys to fetch'));
     }
 
-    const waterfall = require('async').waterfall;
     let funcs = [];
     let objects = {};
 
     for (let k in keys) {
       funcs.push(function (cb2) {
-        fetchOne(bucket, keys[k], function (err, data) {
+        fetchOne(bucket, keys[k], (err, data) => {
           if (!err) {
             // so we only add when valid, but ignore erros
             objects[keys[k]] = data;
@@ -121,7 +121,7 @@ const fetchAll = (bucket, keys, cb) => {
         });
       });
     }
-    waterfall(funcs, function (err, data) {
+    parallel(funcs, (err, data) => {
       cb(err, objects);
     });
   } catch (e) {
@@ -140,7 +140,7 @@ const deleteOne = (bucket, key, cb) => {
     s3.deleteObject({
       Bucket: bucket,
       Key: key
-    }, function (err, data) {
+    }, (err, data) => {
       cb(err, data);
     });
   } catch (e) {
@@ -156,7 +156,7 @@ const deleteOne = (bucket, key, cb) => {
  */
 const deleteMany = (bucket, keys, cb) => {
   let items = [];
-  keys.map(function (item) {
+  keys.map((item) => {
     items.push({
       Key: item
     });
@@ -169,7 +169,7 @@ const deleteMany = (bucket, keys, cb) => {
         Objects: items,
         Quiet: false
       }
-    }, function (err, data) {
+    }, (err, data) => {
       cb(err, data);
     });
   } catch (e) {
@@ -186,7 +186,7 @@ const deleteMany = (bucket, keys, cb) => {
  */
 const findWithContent = (bucket, keyword, prefix, cb) => {
   try {
-    find(bucket, keyword, prefix, function (err, data) {
+    find(bucket, keyword, prefix, (err, data) => {
       let keys = [];
       if (data != null && typeof data === 'object') {
         for (let k in data) {
@@ -221,7 +221,7 @@ class table {
     this.bucket = bucket;
     let tmp = prefix.split('/');
     let prefixWithSlash = '';
-    tmp.forEach(function (item) {
+    tmp.forEach((item) => {
       if (item.length > 0) {
         prefixWithSlash += item + '/';
       }
@@ -231,12 +231,12 @@ class table {
 
   find(keyword, cb) {
     let prefix = this.prefix;
-    find(this.bucket, keyword, this.prefix, function (err, data) {
+    find(this.bucket, keyword, this.prefix, (err, data) => {
       if (err) {
         return cb(err);
       }
       // remove prefix from keys
-      data.forEach(function (item) {
+      data.forEach((item) => {
         item.Key = item.Key.substring(prefix.length);
       });
       cb(err, data);
@@ -245,7 +245,7 @@ class table {
 
   findWithContent(keyword, cb) {
     let prefix = this.prefix;
-    findWithContent(this.bucket, keyword, this.prefix, function (err, data) {
+    findWithContent(this.bucket, keyword, this.prefix, (err, data) => {
       if (err) {
         return cb(err);
       }
@@ -263,6 +263,24 @@ class table {
     save(this.bucket, key, data, cb);
   }
 
+  saveMany(data, cb) {
+    const drops = [];
+    const responses = [];
+    const self = this;
+    for (let key in data) {
+      let item = data[key];
+      drops.push((callback) => {
+        self.save(key, item, (err, data) => {
+          responses.push(data);
+          callback(err, data);
+        });
+      });
+    }
+    parallel(drops, (err, data) => {
+      cb(err, responses);
+    });
+  }
+
   fetchOne(key, cb) {
     key = this.prefix + key;
     fetchOne(this.bucket, key, cb);
@@ -271,10 +289,10 @@ class table {
   fetchAll(keys, cb) {
     let prefix = this.prefix;
     let keysWithPrefix = [];
-    keys.forEach(function (item) {
+    keys.forEach((item) => {
       keysWithPrefix.push(this.prefix + item);
     });
-    fetchAll(this.bucket, keysWithPrefix, function (err, data) {
+    fetchAll(this.bucket, keysWithPrefix, (err, data) => {
       if (err) {
         return cb(err);
       }
@@ -294,12 +312,12 @@ class table {
 
   deleteMany(keys, cb) {
     let keysWithPrefix = [];
-    keys.forEach(function (item) {
-      keysWithPrefix.push(this.prefix + item);
+    let prefix = this.prefix;
+    keys.forEach((item) => {
+      keysWithPrefix.push(prefix + item);
     });
     deleteMany(this.bucket, keysWithPrefix, cb);
   }
-
 }
 
 module.exports = database;
